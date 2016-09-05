@@ -48,44 +48,37 @@ func TestParseInvalidTimestamp(t *testing.T) {
 }
 
 func TestParseNorthernLatitude(t *testing.T) {
-	lat, _ := parseLatitude("36.874506N")
+	lat, _ := parseCoordinate("36.874506N")
 	if lat != 36.874506 {
 		t.Errorf("wrong latitude parsed: %v", lat)
 	}
 }
 
 func TestParseSouthernLatitude(t *testing.T) {
-	lat, _ := parseLatitude("36.874506S")
+	lat, _ := parseCoordinate("36.874506S")
 	if lat != -36.874506 {
 		t.Errorf("wrong latitude parsed: %v", lat)
 	}
 }
 
-func TestParseInvalidLatitude(t *testing.T) {
-	_, err := parseLatitude("36.874506X")
-	if err == nil {
-		t.Errorf("expected error from latitude")
-	}
-}
-
 func TestParseEasternLongitude(t *testing.T) {
-	lon, _ := parseLongitude("174.779188E")
+	lon, _ := parseCoordinate("174.779188E")
 	if lon != 174.779188 {
 		t.Errorf("wrong longitude parsed: %v", lon)
 	}
 }
 
 func TestParseWesternLongitude(t *testing.T) {
-	lon, _ := parseLongitude("174.779188W")
+	lon, _ := parseCoordinate("174.779188W")
 	if lon != -174.779188 {
 		t.Errorf("wrong longitude parsed: %v", lon)
 	}
 }
 
-func TestParseInvalidLongitude(t *testing.T) {
-	_, err := parseLongitude("174.779188X")
+func TestParseInvalidLatitudeLongitude(t *testing.T) {
+	_, err := parseCoordinate("174.779188X")
 	if err == nil {
-		t.Errorf("expected error from longitude")
+		t.Errorf("expected error from coordinate 'X'")
 	}
 }
 

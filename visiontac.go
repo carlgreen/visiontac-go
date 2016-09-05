@@ -40,30 +40,14 @@ func parseTimestamp(s1, s2 string) (time.Time, error) {
 	return time.Parse("060102150405", s1+s2)
 }
 
-func parseLatitude(s string) (float32, error) {
+func parseCoordinate(s string) (float32, error) {
 	real := s[:len(s)-1]
 	half := s[len(s)-1]
 	var mult float32
 	switch half {
-	case 'N':
+	case 'N', 'E':
 		mult = 1
-	case 'S':
-		mult = -1
-	default:
-		return 0, errors.New(fmt.Sprintf("unexpected direction %c", half))
-	}
-	result, err := strconv.ParseFloat(real, 32)
-	return float32(result) * mult, err
-}
-
-func parseLongitude(s string) (float32, error) {
-	real := s[:len(s)-1]
-	half := s[len(s)-1]
-	var mult float32
-	switch half {
-	case 'E':
-		mult = 1
-	case 'W':
+	case 'S', 'W':
 		mult = -1
 	default:
 		return 0, errors.New(fmt.Sprintf("unexpected direction %c", half))
@@ -95,13 +79,13 @@ func Parse(s string) (Record, error) {
 	}
 	rec.Timestamp = ts
 
-	lat, err := parseLatitude(vals[4])
+	lat, err := parseCoordinate(vals[4])
 	if err != nil {
 		return rec, err
 	}
 	rec.Latitude = lat
 
-	lon, err := parseLongitude(vals[5])
+	lon, err := parseCoordinate(vals[5])
 	if err != nil {
 		return rec, err
 	}

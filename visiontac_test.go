@@ -83,7 +83,7 @@ func TestParseInvalidLatitudeLongitude(t *testing.T) {
 }
 
 func TestParseStandardLine(t *testing.T) {
-	input := "23\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,0\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	input := "23\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
 	rec, err := Parse(input)
 	if err != nil {
@@ -111,7 +111,7 @@ func TestParseStandardLine(t *testing.T) {
 	if rec.Speed != 3 {
 		t.Errorf("wrong speed parsed: %v", rec.Speed)
 	}
-	if rec.Heading != 0 {
+	if rec.Heading != 1 {
 		t.Errorf("wrong heading parsed: %v", rec.Heading)
 	}
 	// if rec.FixMode != nil {

@@ -103,5 +103,11 @@ func Parse(s string) (Record, error) {
 	}
 	rec.Speed = speed
 
+	heading, err := parseInt(vals[8])
+	if err != nil {
+		return rec, err
+	}
+	rec.Heading = heading
+
 	return rec, nil
 }

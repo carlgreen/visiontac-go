@@ -83,7 +83,7 @@ func TestParseWesternLongitude(t *testing.T) {
 }
 
 func TestParseInvalidLongitude(t *testing.T) {
-	_, err := parseLatitude("174.779188X")
+	_, err := parseLongitude("174.779188X")
 	if err == nil {
 		t.Errorf("expected error from longitude")
 	}

@@ -1,6 +1,7 @@
 package visiontac
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -85,7 +86,8 @@ func TestParseInvalidLatitudeLongitude(t *testing.T) {
 func TestParseStandardLine(t *testing.T) {
 	input := "23\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-	rec, err := Parse(input)
+	p := NewParser(strings.NewReader(input))
+	rec, err := p.Parse()
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -131,5 +133,29 @@ func TestParseStandardLine(t *testing.T) {
 	// }
 	if rec.Vox != "" {
 		t.Errorf("wrong vox parsed: %v", rec.Vox)
+	}
+}
+
+func TestParseAll(t *testing.T) {
+	input :=
+		"1\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00\n" +
+			"2\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+
+	p := NewParser(strings.NewReader(input))
+	recs, err := p.ParseAll()
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if len(recs) != 2 {
+		t.Fatalf("expected 2 records not %d", len(recs))
+	}
+
+	rec0 := recs[0]
+	if rec0.Index != 1 {
+		t.Errorf("wrong index parsed: %v", rec0.Index)
+	}
+	rec1 := recs[1]
+	if rec1.Index != 2 {
+		t.Errorf("wrong index parsed: %v", rec1.Index)
 	}
 }

@@ -1,8 +1,10 @@
 package visiontac
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -56,7 +58,7 @@ func parseCoordinate(s string) (float32, error) {
 	return float32(result) * mult, err
 }
 
-func Parse(s string) (Record, error) {
+func parse(s string) (Record, error) {
 	vals := strings.Split(s, ",")
 	fmt.Println(vals)
 	rec := Record{}
@@ -110,4 +112,46 @@ func Parse(s string) (Record, error) {
 	rec.Heading = heading
 
 	return rec, nil
+}
+
+type Parser struct {
+	s *bufio.Scanner
+}
+
+func NewParser(r io.Reader) *Parser {
+	return &Parser{
+		s: bufio.NewScanner(r),
+	}
+}
+
+func (r *Parser) Parse() (record Record, err error) {
+	zerorec := Record{}
+	for r.s.Scan() {
+		record, err = parse(r.s.Text())
+		if record != zerorec {
+			break
+		}
+		if err != nil {
+			return zerorec, err
+		}
+	}
+	if err := r.s.Err(); err != nil {
+		return zerorec, err
+	}
+
+	return record, nil
+}
+
+func (r *Parser) ParseAll() (records []Record, err error) {
+	zerorec := Record{}
+	for {
+		record, err := r.Parse()
+		if err != nil {
+			return nil, err
+		}
+		if record == zerorec {
+			return records, nil
+		}
+		records = append(records, record)
+	}
 }

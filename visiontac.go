@@ -227,7 +227,6 @@ func (r *Parser) ParseAll() (records []StandardRecord, err error) {
 
 func parse(s string) (StandardRecord, error) {
 	vals := strings.Split(s, ",")
-	fmt.Println(vals)
 	switch len(vals) {
 	case 10:
 		return parseStandard(vals)

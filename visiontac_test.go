@@ -164,7 +164,6 @@ func TestParseAdvancedLine(t *testing.T) {
 		t.Errorf("advanced record not parsed")
 	}
 	rec := advwrapper.AdvancedRecord()
-	advrec := advwrapper.AdvancedRecord() // TODO
 
 	if rec.Index != 1 {
 		t.Errorf("wrong index parsed: %v", rec.Index)
@@ -190,20 +189,20 @@ func TestParseAdvancedLine(t *testing.T) {
 	if rec.Heading != 120 {
 		t.Errorf("wrong heading parsed: %v", rec.Heading)
 	}
-	if advrec.FixMode != "3D" {
-		t.Errorf("wrong fix mode parsed: %v", advrec.FixMode)
+	if rec.FixMode != "3D" {
+		t.Errorf("wrong fix mode parsed: %v", rec.FixMode)
 	}
-	if advrec.Valid != "SPS " {
-		t.Errorf("wrong valid parsed: %v", advrec.Valid)
+	if rec.Valid != "SPS " {
+		t.Errorf("wrong valid parsed: %v", rec.Valid)
 	}
-	if advrec.Pdop != 2.1 {
-		t.Errorf("wrong pdop parsed: %v", advrec.Pdop)
+	if rec.Pdop != 2.1 {
+		t.Errorf("wrong pdop parsed: %v", rec.Pdop)
 	}
-	if advrec.Hdop != 1.9 {
-		t.Errorf("wrong hdop parsed: %v", advrec.Hdop)
+	if rec.Hdop != 1.9 {
+		t.Errorf("wrong hdop parsed: %v", rec.Hdop)
 	}
-	if advrec.Vdop != 1.0 {
-		t.Errorf("wrong vdop parsed: %v", advrec.Vdop)
+	if rec.Vdop != 1.0 {
+		t.Errorf("wrong vdop parsed: %v", rec.Vdop)
 	}
 	if rec.Vox != "" {
 		t.Errorf("wrong vox parsed: %v", rec.Vox)

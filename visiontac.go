@@ -49,10 +49,6 @@ type advrec struct {
 	Vdop    float32
 }
 
-func (r advrec) StandardRecord() stdrec {
-	return r.stdrec
-}
-
 func (r advrec) AdvancedRecord() advrec {
 	return r
 }

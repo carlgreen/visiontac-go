@@ -20,6 +20,20 @@ func TestParseInvalidInt(t *testing.T) {
 	}
 }
 
+func TestParseFloat(t *testing.T) {
+	f, _ := parseFloat("1.9\x00\x00")
+	if f != 1.9 {
+		t.Errorf("wrong float parsed: %v", f)
+	}
+}
+
+func TestParseInvalidFloat(t *testing.T) {
+	_, err := parseFloat("23\x001\x00\x00")
+	if err == nil {
+		t.Errorf("expected error from float")
+	}
+}
+
 func TestParseTag(t *testing.T) {
 	i, _ := parseTag("T")
 	if i != 'T' {
@@ -87,10 +101,11 @@ func TestParseStandardLine(t *testing.T) {
 	input := "23\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
 	p := NewParser(strings.NewReader(input))
-	rec, err := p.Parse()
+	wrapper, err := p.Parse()
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
+	rec := wrapper.StandardRecord()
 
 	if rec.Index != 23 {
 		t.Errorf("wrong index parsed: %v", rec.Index)
@@ -136,6 +151,65 @@ func TestParseStandardLine(t *testing.T) {
 	}
 }
 
+func TestParseAdvancedLine(t *testing.T) {
+	input := "1\x00\x00\x00\x00\x00,T,111213,185059,36.874506S,174.779188E,152\x00\x00,79\x00\x00,120,3D,SPS ,2.1\x00\x00,1.9\x00\x00,1.0\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+
+	p := NewParser(strings.NewReader(input))
+	wrapper, err := p.Parse()
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	advwrapper, ok := wrapper.(AdvancedRecord)
+	if !ok {
+		t.Errorf("advanced record not parsed")
+	}
+	rec := advwrapper.AdvancedRecord()
+	advrec := advwrapper.AdvancedRecord() // TODO
+
+	if rec.Index != 1 {
+		t.Errorf("wrong index parsed: %v", rec.Index)
+	}
+	if rec.Tag != 'T' {
+		t.Errorf("wrong tag parsed: %v", rec.Tag)
+	}
+	if rec.Timestamp != time.Date(2011, 12, 13, 18, 50, 59, 0, time.UTC) {
+		t.Errorf("wrong timestamp parsed: %v", rec.Timestamp)
+	}
+	if rec.Latitude != -36.874506 {
+		t.Errorf("wrong latitude parsed: %v", rec.Latitude)
+	}
+	if rec.Longitude != 174.779188 {
+		t.Errorf("wrong longitude parsed: %v", rec.Longitude)
+	}
+	if rec.Height != 152 {
+		t.Errorf("wrong height parsed: %v", rec.Height)
+	}
+	if rec.Speed != 79 {
+		t.Errorf("wrong speed parsed: %v", rec.Speed)
+	}
+	if rec.Heading != 120 {
+		t.Errorf("wrong heading parsed: %v", rec.Heading)
+	}
+	if advrec.FixMode != "3D" {
+		t.Errorf("wrong fix mode parsed: %v", advrec.FixMode)
+	}
+	if advrec.Valid != "SPS " {
+		t.Errorf("wrong valid parsed: %v", advrec.Valid)
+	}
+	if advrec.Pdop != 2.1 {
+		t.Errorf("wrong pdop parsed: %v", advrec.Pdop)
+	}
+	if advrec.Hdop != 1.9 {
+		t.Errorf("wrong hdop parsed: %v", advrec.Hdop)
+	}
+	if advrec.Vdop != 1.0 {
+		t.Errorf("wrong vdop parsed: %v", advrec.Vdop)
+	}
+	if rec.Vox != "" {
+		t.Errorf("wrong vox parsed: %v", rec.Vox)
+	}
+}
+
 func TestParseAll(t *testing.T) {
 	input :=
 		"1\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00\n" +
@@ -150,11 +224,11 @@ func TestParseAll(t *testing.T) {
 		t.Fatalf("expected 2 records not %d", len(recs))
 	}
 
-	rec0 := recs[0]
+	rec0 := recs[0].StandardRecord()
 	if rec0.Index != 1 {
 		t.Errorf("wrong index parsed: %v", rec0.Index)
 	}
-	rec1 := recs[1]
+	rec1 := recs[1].StandardRecord()
 	if rec1.Index != 2 {
 		t.Errorf("wrong index parsed: %v", rec1.Index)
 	}

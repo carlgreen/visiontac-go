@@ -10,7 +10,16 @@ import (
 	"time"
 )
 
-type Record struct {
+type StandardRecord interface {
+	StandardRecord() stdrec
+}
+
+type AdvancedRecord interface {
+	StandardRecord
+	AdvancedRecord() advrec
+}
+
+type stdrec struct {
 	Index     int
 	Tag       byte
 	Timestamp time.Time
@@ -27,8 +36,37 @@ type Record struct {
 	Vox string
 }
 
+func (r stdrec) StandardRecord() stdrec {
+	return r
+}
+
+type advrec struct {
+	stdrec
+	FixMode string
+	Valid   string
+	Pdop    float32
+	Hdop    float32
+	Vdop    float32
+}
+
+func (r advrec) StandardRecord() stdrec {
+	return r.stdrec
+}
+
+func (r advrec) AdvancedRecord() advrec {
+	return r
+}
+
 func parseInt(s string) (int, error) {
 	return strconv.Atoi(strings.TrimRight(s, "\x00"))
+}
+
+func parseFloat(s string) (float32, error) {
+	result, err := strconv.ParseFloat(strings.TrimRight(s, "\x00"), 32)
+	if err != nil {
+		return 0, err
+	}
+	return float32(result), err
 }
 
 func parseTag(s string) (byte, error) {
@@ -58,10 +96,8 @@ func parseCoordinate(s string) (float32, error) {
 	return float32(result) * mult, err
 }
 
-func parse(s string) (Record, error) {
-	vals := strings.Split(s, ",")
-	fmt.Println(vals)
-	rec := Record{}
+func parseStandard(vals []string) (StandardRecord, error) {
+	rec := stdrec{}
 
 	index, err := parseInt(vals[0])
 	if err != nil {
@@ -114,6 +150,41 @@ func parse(s string) (Record, error) {
 	return rec, nil
 }
 
+func parseAdvanced(vals []string) (AdvancedRecord, error) {
+	advrec := advrec{}
+	rec, err := parseStandard(vals)
+	if err != nil {
+		return advrec, nil
+	}
+	advrec.stdrec = rec.StandardRecord()
+
+	fixMode := vals[9]
+	advrec.FixMode = fixMode
+
+	valid := vals[10]
+	advrec.Valid = valid
+
+	pdop, err := parseFloat(vals[11])
+	if err != nil {
+		return advrec, err
+	}
+	advrec.Pdop = pdop
+
+	hdop, err := parseFloat(vals[12])
+	if err != nil {
+		return advrec, err
+	}
+	advrec.Hdop = hdop
+
+	vdop, err := parseFloat(vals[13])
+	if err != nil {
+		return advrec, err
+	}
+	advrec.Vdop = vdop
+
+	return advrec, nil
+}
+
 type Parser struct {
 	s *bufio.Scanner
 }
@@ -124,34 +195,45 @@ func NewParser(r io.Reader) *Parser {
 	}
 }
 
-func (r *Parser) Parse() (record Record, err error) {
-	zerorec := Record{}
+func (r *Parser) Parse() (record StandardRecord, err error) {
 	for r.s.Scan() {
 		record, err = parse(r.s.Text())
-		if record != zerorec {
+		if record != nil {
 			break
 		}
 		if err != nil {
-			return zerorec, err
+			return nil, err
 		}
 	}
 	if err := r.s.Err(); err != nil {
-		return zerorec, err
+		return nil, err
 	}
 
 	return record, nil
 }
 
-func (r *Parser) ParseAll() (records []Record, err error) {
-	zerorec := Record{}
+func (r *Parser) ParseAll() (records []StandardRecord, err error) {
 	for {
 		record, err := r.Parse()
 		if err != nil {
 			return nil, err
 		}
-		if record == zerorec {
+		if record == nil {
 			return records, nil
 		}
 		records = append(records, record)
+	}
+}
+
+func parse(s string) (StandardRecord, error) {
+	vals := strings.Split(s, ",")
+	fmt.Println(vals)
+	switch len(vals) {
+	case 10:
+		return parseStandard(vals)
+	case 15:
+		return parseAdvanced(vals)
+	default:
+		return nil, errors.New("unexpected number of fields")
 	}
 }

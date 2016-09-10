@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+const standardHeader = "INDEX,TAG,DATE,TIME,LATITUDE N/S,LONGITUDE E/W,HEIGHT,SPEED,HEADING,VOX"
+const advancedHeader = "INDEX,TAG,DATE,TIME,LATITUDE N/S,LONGITUDE E/W,HEIGHT,SPEED,HEADING,FIX MODE,VALID,PDOP,HDOP,VDOP,VOX"
+
 type StandardRecord interface {
 	StandardRecord() stdrec
 }
@@ -181,19 +184,46 @@ func parseAdvanced(vals []string) (AdvancedRecord, error) {
 	return advrec, nil
 }
 
-type Parser struct {
+type Parser interface {
+	Parse() (record StandardRecord, err error)
+	ParseAll() (record []StandardRecord, err error)
+}
+
+type stdparser struct {
 	s *bufio.Scanner
 }
 
-func NewParser(r io.Reader) *Parser {
-	return &Parser{
-		s: bufio.NewScanner(r),
-	}
+type advparser struct {
+	s *bufio.Scanner
 }
 
-func (r *Parser) Parse() (record StandardRecord, err error) {
+func NewParser(r io.Reader) (Parser, error) {
+	s := bufio.NewScanner(r)
+	if s.Scan() {
+		switch s.Text() {
+		case standardHeader:
+			return &stdparser{
+				s: s,
+			}, nil
+		case advancedHeader:
+			return &advparser{
+				s: s,
+			}, nil
+		}
+	}
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
+	return nil, errors.New("no header matched")
+}
+
+func (r *stdparser) Parse() (record StandardRecord, err error) {
 	for r.s.Scan() {
-		record, err = parse(r.s.Text())
+		vals := strings.Split(r.s.Text(), ",")
+		if len(vals) != 10 {
+			return nil, errors.New("unexpected number of fields")
+		}
+		record, err = parseStandard(vals)
 		if record != nil {
 			break
 		}
@@ -208,7 +238,7 @@ func (r *Parser) Parse() (record StandardRecord, err error) {
 	return record, nil
 }
 
-func (r *Parser) ParseAll() (records []StandardRecord, err error) {
+func (r *stdparser) ParseAll() (records []StandardRecord, err error) {
 	for {
 		record, err := r.Parse()
 		if err != nil {
@@ -221,14 +251,36 @@ func (r *Parser) ParseAll() (records []StandardRecord, err error) {
 	}
 }
 
-func parse(s string) (StandardRecord, error) {
-	vals := strings.Split(s, ",")
-	switch len(vals) {
-	case 10:
-		return parseStandard(vals)
-	case 15:
-		return parseAdvanced(vals)
-	default:
-		return nil, errors.New("unexpected number of fields")
+func (r *advparser) Parse() (record StandardRecord, err error) {
+	for r.s.Scan() {
+		vals := strings.Split(r.s.Text(), ",")
+		if len(vals) != 15 {
+			return nil, errors.New("unexpected number of fields")
+		}
+		record, err = parseAdvanced(vals)
+		if record != nil {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := r.s.Err(); err != nil {
+		return nil, err
+	}
+
+	return record, nil
+}
+
+func (r *advparser) ParseAll() (records []StandardRecord, err error) {
+	for {
+		record, err := r.Parse()
+		if err != nil {
+			return nil, err
+		}
+		if record == nil {
+			return records, nil
+		}
+		records = append(records, record)
 	}
 }

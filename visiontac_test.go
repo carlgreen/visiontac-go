@@ -100,8 +100,7 @@ func TestParseInvalidLatitudeLongitude(t *testing.T) {
 func TestParseStandardLine(t *testing.T) {
 	input := "23\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-	p := NewParser(strings.NewReader(input))
-	wrapper, err := p.Parse()
+	wrapper, err := parseStandard(strings.Split(input, ","))
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -154,8 +153,7 @@ func TestParseStandardLine(t *testing.T) {
 func TestParseAdvancedLine(t *testing.T) {
 	input := "1\x00\x00\x00\x00\x00,T,111213,185059,36.874506S,174.779188E,152\x00\x00,79\x00\x00,120,3D,SPS ,2.1\x00\x00,1.9\x00\x00,1.0\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-	p := NewParser(strings.NewReader(input))
-	wrapper, err := p.Parse()
+	wrapper, err := parseAdvanced(strings.Split(input, ","))
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -209,12 +207,16 @@ func TestParseAdvancedLine(t *testing.T) {
 	}
 }
 
-func TestParseAll(t *testing.T) {
+func TestParseStandardFile(t *testing.T) {
 	input :=
-		"1\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00\n" +
+		"INDEX,TAG,DATE,TIME,LATITUDE N/S,LONGITUDE E/W,HEIGHT,SPEED,HEADING,VOX\n" +
+			"1\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00\n" +
 			"2\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-	p := NewParser(strings.NewReader(input))
+	p, err := NewParser(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
 	recs, err := p.ParseAll()
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
@@ -223,9 +225,49 @@ func TestParseAll(t *testing.T) {
 		t.Fatalf("expected 2 records not %d", len(recs))
 	}
 
+	if _, ok := recs[0].(advrec); ok {
+		t.Errorf("parsed as advanced record")
+	}
 	rec0 := recs[0].StandardRecord()
 	if rec0.Index != 1 {
 		t.Errorf("wrong index parsed: %v", rec0.Index)
+	}
+	if _, ok := recs[1].(advrec); ok {
+		t.Errorf("parsed as advanced record")
+	}
+	rec1 := recs[1].StandardRecord()
+	if rec1.Index != 2 {
+		t.Errorf("wrong index parsed: %v", rec1.Index)
+	}
+}
+
+func TestParseAdvancedFile(t *testing.T) {
+	input :=
+		"INDEX,TAG,DATE,TIME,LATITUDE N/S,LONGITUDE E/W,HEIGHT,SPEED,HEADING,FIX MODE,VALID,PDOP,HDOP,VDOP,VOX\n" +
+			"1\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,3D,SPS ,1.3\x00\x00,1.0\x00\x00,0.9\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00\n" +
+			"2\x00\x00\x00\x00\x00,T,090512,041041,41.302453S,174.778450E,2\x00\x00,3\x00\x00\x00,1\x00\x00,3D,SPS ,1.7\x00\x00,0.8\x00\x00,1.5\x00\x00,\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+
+	p, err := NewParser(strings.NewReader(input))
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	recs, err := p.ParseAll()
+	if err != nil {
+		t.Fatalf("unexpected error %v", err)
+	}
+	if len(recs) != 2 {
+		t.Fatalf("expected 2 records not %d", len(recs))
+	}
+
+	if _, ok := recs[0].(advrec); !ok {
+		t.Errorf("not parsed as advanced record")
+	}
+	rec0 := recs[0].StandardRecord()
+	if rec0.Index != 1 {
+		t.Errorf("wrong index parsed: %v", rec0.Index)
+	}
+	if _, ok := recs[1].(advrec); !ok {
+		t.Errorf("not parsed as advanced record")
 	}
 	rec1 := recs[1].StandardRecord()
 	if rec1.Index != 2 {
